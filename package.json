@@ -1,0 +1,17 @@
+{
+  "name": "vecflow-isaiah",
+  "version": "5.0.3",
+  "description": "A DSL for Image Processing by Isaiah Micheal Asuquo",
+  "author": "Isaiah Micheal Asuquo",
+  "license": "MIT",
+  "bin": {
+    "vecflow": "index.js"
+  },
+  "files": [
+    "index.js",
+    "vecflow"
+  ],
+  "scripts": {
+    "postinstall": "pip install Pillow numpy"
+  }
+}
