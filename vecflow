@@ -1,61 +1,49 @@
 #!/usr/bin/env python3
 # ==========================================
-# VecFlow Programming Language v5.0 (Ultimate)
+# VecFlow Programming Language v5.1.1
 # Founder: Isaiah Micheal Asuquo
 # ==========================================
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
 import re
 import sys
 import time
+import json
+import io
+import base64
 import urllib.parse
 import urllib.request
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageColor
 
-# ==========================================
-# HELP SYSTEM (Categorized)
-# ==========================================
 HELP_DB = {
-    "SET": "SET var number\n  Stores a number in memory. Example: SET size 1.5",
-    "CROP": "CROP var x1 y1 x2 y2 -> dest\n  Cuts out a rectangle from the image.",
-    "BLEND": "BLEND base overlay 0.5 -> dest\n  Mixes two images. 0.5 means 50% transparent.",
-    "AI": "AI \"your prompt\" -> dest\n  Generates a real image using Artificial Intelligence.",
-    "ASK": "ASK \"question\" -> dest\n  Pauses and asks the user to type a prompt.",
-    "PICK": "PICK -> dest\n  Opens your Android gallery to select an image.",
-    "PLASMA": "PLASMA -> dest\n  Generates a colorful abstract math background.",
-    "LOAD": "LOAD \"file.png\" AS var [RGB]\n  Loads an image. Add RGB for color.",
-    "CANVAS": "CANVAS width height COLOR/#HEX -> dest\n  Creates a blank image.",
-    "DRAW_RECT": "DRAW_RECT var x1 y1 x2 y2 COLOR/#HEX -> dest\n  Draws a filled rectangle.",
-    "DRAW_LINE": "DRAW_LINE var x1 y1 x2 y2 COLOR/#HEX -> dest\n  Draws a straight line.",
-    "DRAW_CIRCLE": "DRAW_CIRCLE var x y radius COLOR/#HEX -> dest\n  Draws a filled circle.",
-    "DRAW_TEXT": "DRAW_TEXT var \"Text\" x y size COLOR/#HEX -> dest\n  Writes text on the image.",
-    "PASTE": "PASTE base x y \"image.png\" -> dest\n  Pastes an image onto a canvas.",
-    "CARTOON": "CARTOON var -> dest\n  Applies an Instagram-style cartoon filter (RGB only).",
-    "VIEW": "VIEW \"file.png\"\n  Opens the image in your Android gallery immediately.",
-    "RESIZE": "RESIZE var width height -> dest\n  Changes the dimensions of the image.",
-    "SEPIA": "SEPIA var -> dest\n  Applies an old vintage brown filter (RGB only).",
-    "SAVE": "SAVE var AS \"file.png\"\n  Saves your image.",
-    "RENDER": "RENDER var\n  Shows the image as text in the terminal.",
-    "MULTIPLY": "MULTIPLY var BY num/var -> dest\n  Brightens or darkens the image.",
-    "ADD": "ADD var BY num/var -> dest\n  Adds a flat number to every pixel.",
-    "SUBTRACT": "SUBTRACT var BY num/var -> dest\n  Subtracts a flat number from every pixel.",
-    "INVERT": "INVERT var -> dest\n  Flips colors (negative image).",
-    "THRESHOLD": "THRESHOLD var BY num -> dest\n  Converts to pure black and white.",
-    "MAX": "MAX(var, num) -> dest\n  Caps the brightness.",
-    "FLIP": "FLIP var -> dest\n  Mirrors horizontally.",
-    "BLUR": "BLUR var -> dest\n  Softens the image.",
-    "SHARPEN": "SHARPEN var -> dest\n  Makes edges crisp.",
-    "EDGES": "EDGES var -> dest\n  Draws the outlines.",
-    "OUTPUT": "OUTPUT var\n  Prints raw pixel numbers to the terminal."
+    "SET": "SET var number", "CROP": "CROP var x1 y1 x2 y2 -> dest",
+    "BLEND": "BLEND base overlay 0.5 -> dest", "AI": "AI \"prompt\" -> dest",
+    "ASK": "ASK \"question\" -> dest", "PICK": "PICK -> dest",
+    "PLASMA": "PLASMA -> dest", "LOAD": "LOAD \"file.png\" AS var [RGB]",
+    "CANVAS": "CANVAS width height COLOR/#HEX -> dest",
+    "DRAW_RECT": "DRAW_RECT var x1 y1 x2 y2 COLOR/#HEX -> dest",
+    "DRAW_LINE": "DRAW_LINE var x1 y1 x2 y2 COLOR/#HEX -> dest",
+    "DRAW_CIRCLE": "DRAW_CIRCLE var x y radius COLOR/#HEX -> dest",
+    "DRAW_TEXT": "DRAW_TEXT var \"Text\" x y size COLOR/#HEX -> dest",
+    "PASTE": "PASTE base x y \"image.png\" -> dest", "CARTOON": "CARTOON var -> dest",
+    "VIEW": "VIEW \"file.png\"", "RESIZE": "RESIZE var width height -> dest",
+    "SEPIA": "SEPIA var -> dest", "SAVE": "SAVE var AS \"file.png\"",
+    "RENDER": "RENDER var", "MULTIPLY": "MULTIPLY var BY num -> dest",
+    "ADD": "ADD var BY num -> dest", "SUBTRACT": "SUBTRACT var BY num -> dest",
+    "INVERT": "INVERT var -> dest", "THRESHOLD": "THRESHOLD var BY num -> dest",
+    "MAX": "MAX(var, num) -> dest", "FLIP": "FLIP var -> dest",
+    "BLUR": "BLUR var -> dest", "SHARPEN": "SHARPEN var -> dest",
+    "EDGES": "EDGES var -> dest", "OUTPUT": "OUTPUT var"
 }
 
 def interactive_help():
-    print("==========================================")
-    print("           V E C F L O W  v5.0")
-    print("==========================================")
-    print("Founder: Isaiah Micheal Asuquo")
-    print("Tip: Write comments using // \n")
-    
+    print("==========================================\n           V E C F L O W  v5.1.1\n==========================================")
+    print("Founder: Isaiah Micheal Asuquo\nTip: Write comments using // \n")
     categories = {
         "🤖 AI & Input": ["AI", "ASK", "PICK"],
         "🎨 Generators & Drawing": ["CANVAS", "PLASMA", "DRAW_RECT", "DRAW_LINE", "DRAW_CIRCLE", "DRAW_TEXT", "PASTE"],
@@ -64,19 +52,13 @@ def interactive_help():
         "📐 Geometry": ["RESIZE", "CROP", "FLIP", "BLEND"],
         "💾 System & I/O": ["LOAD", "SAVE", "VIEW", "RENDER", "OUTPUT"]
     }
-    
     for cat, cmds in categories.items():
         print(f"{cat}:")
-        for cmd in cmds:
-            print(f"  {cmd}")
+        for cmd in cmds: print(f"  {cmd}")
         print("")
-        
     print("Type 'HELP <COMMAND>' for detailed usage (e.g., HELP CARTOON)")
     print("==========================================\n")
 
-# ==========================================
-# TOOLS & UTILITIES
-# ==========================================
 def lexer(code):
     code = re.sub(r'//.*', '', code)
     token_pattern = re.compile(r'\b(HELP|SET|CROP|BLEND|ASK|AI|PICK|PLASMA|LOAD|AS|RGB|CANVAS|DRAW_RECT|DRAW_LINE|DRAW_CIRCLE|DRAW_TEXT|PASTE|CARTOON|VIEW|RESIZE|SEPIA|MULTIPLY|BY|MAX|OUTPUT|SAVE|RENDER|INVERT|ADD|SUBTRACT|THRESHOLD|FLIP|EDGES|BLUR|SHARPEN|WHITE|BLACK|RED|GREEN|BLUE|YELLOW)\b|(->)|([A-Za-z_]\w*)|(#[0-9A-Fa-f]{6})|(\d+\.\d+|\d+)|(\[|\]|\(|\)|,)|("[^"]+")')
@@ -101,21 +83,34 @@ def get_color(color_str):
 def get_blurred(data):
     if len(data.shape) == 2:
         padded = np.pad(data, ((1,1),(1,1)), mode='edge')
-        return (padded[:-2,:-2] + padded[:-2,1:-1] + padded[:-2,2:] +
-                padded[1:-1,:-2] + padded[1:-1,1:-1] + padded[1:-1,2:] +
-                padded[2:,:-2] + padded[2:,1:-1] + padded[2:,2:]) / 9.0
+        return (padded[:-2,:-2] + padded[:-2,1:-1] + padded[:-2,2:] + padded[1:-1,:-2] + padded[1:-1,1:-1] + padded[1:-1,2:] + padded[2:,:-2] + padded[2:,1:-1] + padded[2:,2:]) / 9.0
     else:
         blurred = np.zeros_like(data, dtype=np.float64)
         for c in range(3):
             p = np.pad(data[:,:,c], ((1,1),(1,1)), mode='edge')
-            blurred[:,:,c] = (p[:-2,:-2] + p[:-2,1:-1] + p[:-2,2:] +
-                              p[1:-1,:-2] + p[1:-1,1:-1] + p[1:-1,2:] +
-                              p[2:,:-2] + p[2:,1:-1] + p[2:,2:]) / 9.0
+            blurred[:,:,c] = (p[:-2,:-2] + p[:-2,1:-1] + p[:-2,2:] + p[1:-1,:-2] + p[1:-1,1:-1] + p[1:-1,2:] + p[2:,:-2] + p[2:,1:-1] + p[2:,2:]) / 9.0
         return blurred
 
-# ==========================================
-# THE CORE ENGINE
-# ==========================================
+def clean_input(prompt):
+    val = input(prompt).strip().replace(" ", "_")
+    if not val: raise ValueError("Input cannot be empty.")
+    return val
+
+def get_int(prompt):
+    while True:
+        try: return int(input(prompt).strip())
+        except ValueError: print("   [Error] Please enter a valid whole number.")
+
+def get_float(prompt):
+    while True:
+        try: return float(input(prompt).strip())
+        except ValueError: print("   [Error] Please enter a valid number.")
+
+def show_vars(memory):
+    vars = list(memory.keys())
+    if vars: print(f"   [Available variables: {', '.join(vars)}]")
+    else: print("   [No variables available yet]")
+
 def run_vecflow(code, memory):
     tokens = lexer(code)
     if not tokens: return
@@ -126,339 +121,320 @@ def run_vecflow(code, memory):
         if token_value == 'HELP':
             if i+1 < len(tokens) and tokens[i+1][1].upper() in HELP_DB:
                 cmd = tokens[i+1][1].upper()
-                print(f"\n--- VecFlow Help: {cmd} ---")
-                print(HELP_DB[cmd])
-                print("------------------------------------\n")
+                print(f"\n--- VecFlow Help: {cmd} ---\n{HELP_DB[cmd]}\n------------------------------------\n")
                 i += 2
             else:
                 interactive_help()
                 i += 1
             continue
 
-        elif token_value == 'SET':
-            try:
-                var_name, val = tokens[i+1][1], tokens[i+2][1]
-                memory[var_name] = {'is_num': True, 'val': val}
-                print(f"[Engine] Variable '{var_name}' set to {val}")
-                i += 3
-            except (IndexError, ValueError): print("[Error] Use: SET var 1.5"); break
+        is_interactive = (i + 1 >= len(tokens))
 
-        elif token_value == 'CROP':
+        # ==========================================
+        # THE API SECTION IS RIGHT HERE
+        # ==========================================
+        if token_value == 'AI':
             try:
-                var1 = tokens[i+1][1]
-                x1, y1, x2, y2 = int(tokens[i+2][1]), int(tokens[i+3][1]), int(tokens[i+4][1]), int(tokens[i+5][1])
-                dest = tokens[i+7][1]
-                if var1 not in memory: raise ValueError("Variable not found.")
-                img = memory[var1]['image']
-                if img is None:
-                    mode = 'RGB' if memory[var1]['rgb'] else 'L'
-                    img = Image.fromarray(np.clip(memory[var1]['data'], 0, 255).astype(np.uint8), mode=mode)
-                cropped = img.crop((x1, y1, x2, y2))
-                memory[dest] = {'image': cropped, 'data': np.array(cropped, dtype=np.float64), 'rgb': memory[var1]['rgb']}
-                print(f"[Engine] Cropped {var1}. Stored in {dest}")
-                i += 8
-            except (IndexError, ValueError): print("[Error] Use: CROP var x1 y1 x2 y2 -> dest"); break
-
-        elif token_value == 'BLEND':
-            try:
-                var1, var2 = tokens[i+1][1], tokens[i+2][1]
-                alpha = float(tokens[i+3][1])
-                dest = tokens[i+5][1]
-                if var1 not in memory or var2 not in memory: raise ValueError("Variable not found.")
+                if is_interactive:
+                    print("\n🤖 [VecFlow AI Generator - Cloudflare]")
+                    prompt = input("What do you want me to draw? > ").strip()
+                    dest = clean_input("Enter variable name for the image (e.g., ai_image): ")
+                    auto_view = True
+                else:
+                    prompt = memory[tokens[i+1][1]] if tokens[i+1][0] == 'ID' and tokens[i+1][1] in memory else tokens[i+1][1]
+                    dest = tokens[i+3][1] if i+3 < len(tokens) else "ai_image"
+                    auto_view = False
                 
-                base_img = memory[var1]['image']
-                if base_img is None:
-                    base_img = Image.fromarray(np.clip(memory[var1]['data'], 0, 255).astype(np.uint8), mode='RGB' if memory[var1]['rgb'] else 'L')
-                overlay_img = memory[var2]['image']
-                if overlay_img is None:
-                    overlay_img = Image.fromarray(np.clip(memory[var2]['data'], 0, 255).astype(np.uint8), mode='RGB' if memory[var2]['rgb'] else 'L')
+                print(f"[Engine] ⚡ Contacting Cloudflare AI: '{prompt}' (Super fast)...")
                 
-                if overlay_img.size != base_img.size:
-                    overlay_img = overlay_img.resize(base_img.size)
+                # THIS IS WHERE IT READS YOUR .ENV FILE
+                ACCOUNT_ID = os.getenv("CLOUDFLARE_ACCOUNT_ID")
+                API_TOKEN = os.getenv("CLOUDFLARE_API_TOKEN")
+                
+                if not API_TOKEN or not ACCOUNT_ID:
+                    raise ValueError("Missing Cloudflare credentials. Check your .env file.")
+                
+                url = f"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/ai/run/@cf/black-forest-labs/flux-1-schnell"
+                headers = {"Authorization": f"Bearer {API_TOKEN}", "Content-Type": "application/json"}
+                payload = json.dumps({"prompt": prompt, "steps": 4}).encode('utf-8')
+                
+                req = urllib.request.Request(url, data=payload, headers=headers, method='POST')
+                with urllib.request.urlopen(req, timeout=30) as response:
+                    result = json.loads(response.read().decode('utf-8'))
+                    if not result.get('success'): raise Exception(result.get('errors', 'Cloudflare Error'))
+                    img_bytes = base64.b64decode(result['result']['image'])
+                    img = Image.open(io.BytesIO(img_bytes)).convert('RGB')
                     
-                blended = Image.blend(base_img.convert('RGB'), overlay_img.convert('RGB'), alpha)
-                memory[dest] = {'image': blended, 'data': np.array(blended, dtype=np.float64), 'rgb': True}
-                print(f"[Engine] Blended {var1} and {var2}. Stored in {dest}")
-                i += 6
-            except Exception as e: print(f"[Error] BLEND failed: {e}"); break
-
-        elif token_value == 'AI':
-            try:
-                if tokens[i+1][0] == 'ID' and tokens[i+1][1] in memory: prompt = memory[tokens[i+1][1]]
-                else: prompt = tokens[i+1][1]
-                dest = tokens[i+3][1]
-                print(f"[Engine] 🧠 Contacting AI: '{prompt}'...")
-                url = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(prompt)}?width=500&height=500&nologo=true"
-                urllib.request.urlretrieve(url, "ai_temp.jpg")
-                img = Image.open("ai_temp.jpg").convert('RGB')
                 memory[dest] = {'image': img, 'data': np.array(img, dtype=np.float64), 'rgb': True}
-                os.remove("ai_temp.jpg")
-                print(f"[Engine] 🤖 AI Image stored in {dest}")
-                i += 4
-            except Exception as e: print(f"[Error] AI failed: {e}"); break
+                print(f"[Engine] 🤖 Cloudflare AI Image stored in variable '{dest}'")
+                
+                if auto_view:
+                    save_path = f"/sdcard/Download/{dest}.jpg"
+                    img.save(save_path)
+                    print(f"[Engine] Auto-saved to {save_path}")
+                    os.system("sync"); os.system(f"termux-media-scan {save_path} &"); time.sleep(1)
+                    os.system(f"termux-open {save_path}")
+                    
+            except Exception as e: print(f"[Error] AI failed: {e}")
+            i += 1 if is_interactive else 4
 
         elif token_value == 'ASK':
             try:
-                question, dest = tokens[i+1][1], tokens[i+3][1]
-                memory[dest] = input(f"[VecFlow Prompt] {question} ")
+                if is_interactive:
+                    question = input("Enter your question: ").strip()
+                    dest = clean_input("Save answer to variable: ")
+                else:
+                    question, dest = tokens[i+1][1], tokens[i+3][1]
+                memory[dest] = input(f"[VecFlow Prompt] {question} ").strip()
                 print(f"[Engine] Saved answer to '{dest}'")
-                i += 4
-            except (IndexError, KeyboardInterrupt): print("\n[Error] ASK failed."); break
+            except Exception as e: print(f"[Error] ASK failed: {e}")
+            i += 1 if is_interactive else 4
 
         elif token_value == 'PICK':
             try:
-                dest = tokens[i+2][1]
+                if is_interactive: dest = clean_input("Save picked image to variable: ")
+                else: dest = tokens[i+2][1]
                 print("[Engine] 📁 Opening Gallery...")
                 os.system("termux-storage-get picked_image.jpg")
                 img = Image.open("picked_image.jpg").convert('RGB')
                 memory[dest] = {'image': img, 'data': np.array(img, dtype=np.float64), 'rgb': True}
                 print(f"[Engine] Loaded gallery image into {dest}")
-                i += 3
-            except Exception as e: print(f"[Error] PICK failed: {e}"); break
+            except Exception as e: print(f"[Error] PICK failed: {e}")
+            i += 1 if is_interactive else 3
 
         elif token_value == 'PLASMA':
             try:
-                dest = tokens[i+2][1]
+                if is_interactive: dest = clean_input("Save plasma image to variable: ")
+                else: dest = tokens[i+2][1]
                 print("[Engine] Generating Plasma...")
-                w, h = 500, 500
-                X, Y = np.meshgrid(np.linspace(0, 20, w), np.linspace(0, 20, h))
+                X, Y = np.meshgrid(np.linspace(0, 20, 500), np.linspace(0, 20, 500))
                 plasma = (np.sin(X) + np.sin(Y) + np.sin(X + Y) + np.sin(np.sqrt(X**2 + Y**2)) + 4) * 31.875
                 data = np.stack([plasma, np.roll(plasma, 50, axis=0), np.roll(plasma, 100, axis=1)], axis=2)
                 img = Image.fromarray(np.clip(data, 0, 255).astype(np.uint8), mode='RGB')
                 memory[dest] = {'image': img, 'data': np.clip(data, 0, 255), 'rgb': True}
                 print(f"[Engine] Plasma stored in {dest}")
-                i += 3
-            except Exception as e: print(f"[Error] Plasma failed: {e}"); break
+            except Exception as e: print(f"[Error] Plasma failed: {e}")
+            i += 1 if is_interactive else 3
 
-        elif token_value == 'VIEW':
+        elif token_value == 'SET':
             try:
-                filename = tokens[i+1][1]
-                print(f"[Engine] Waiting for Android to scan file...")
-                time.sleep(1.5) 
-                os.system(f"termux-open {filename}")
-                print(f"[Engine] Opening '{filename}'...")
-                i += 2
-            except IndexError: print("[Error] Use: VIEW \"filename.png\""); break
-
-        elif token_value == 'RESIZE':
-            try:
-                var1 = tokens[i+1][1]
-                width, height = int(tokens[i+2][1]), int(tokens[i+3][1])
-                dest = tokens[i+5][1]
-                if var1 not in memory: raise ValueError("Variable not found.")
-                img = memory[var1]['image']
-                if img is None:
-                    mode = 'RGB' if memory[var1]['rgb'] else 'L'
-                    img = Image.fromarray(np.clip(memory[var1]['data'], 0, 255).astype(np.uint8), mode=mode)
-                resized_img = img.resize((width, height))
-                data = np.array(resized_img, dtype=np.float64)
-                memory[dest] = {'image': resized_img, 'data': data, 'rgb': memory[var1]['rgb']}
-                print(f"[Engine] Resized to {width}x{height}. Stored in {dest}")
-                i += 6
-            except (IndexError, ValueError): print("[Error] Use: RESIZE var width height -> dest"); break
-
-        elif token_value == 'SEPIA':
-            try:
-                var1, dest = tokens[i+1][1], tokens[i+3][1]
-                if var1 not in memory: raise ValueError("Variable not found.")
-                if not memory[var1]['rgb']: raise ValueError("Must be RGB image.")
-                data = memory[var1]['data']
-                r = (data[:,:,0] * 0.393) + (data[:,:,1] * 0.769) + (data[:,:,2] * 0.189)
-                g = (data[:,:,0] * 0.349) + (data[:,:,1] * 0.686) + (data[:,:,2] * 0.168)
-                b = (data[:,:,0] * 0.272) + (data[:,:,1] * 0.534) + (data[:,:,2] * 0.131)
-                memory[dest] = {'image': None, 'data': np.clip(np.stack([r, g, b], axis=2), 0, 255), 'rgb': True}
-                print(f"[Engine] SEPIA filter applied. Stored in {dest}")
-                i += 4
-            except (IndexError, ValueError): print(f"[Error] Invalid SEPIA command."); break
-
-        elif token_value == 'CANVAS':
-            try:
-                width, height = int(tokens[i+1][1]), int(tokens[i+2][1])
-                color_name, dest = tokens[i+3][1], tokens[i+5][1]
-                img = Image.new('RGB', (width, height), get_color(color_name))
-                memory[dest] = {'image': img, 'data': np.array(img, dtype=np.float64), 'rgb': True}
-                print(f"[Engine] Created canvas in {dest}")
-                i += 6
-            except (IndexError, ValueError): print("[Error] Use: CANVAS 500 500 #FF0000 -> var"); break
-
-        elif token_value in ['DRAW_RECT', 'DRAW_LINE', 'DRAW_CIRCLE', 'DRAW_TEXT']:
-            try:
-                var1 = tokens[i+1][1]
-                if var1 not in memory: raise ValueError(f"Variable '{var1}' not found.")
-                img = memory[var1]['image'].copy() if memory[var1]['image'] else Image.new('RGB', (500,500), (0,0,0))
-                draw = ImageDraw.Draw(img)
-                
-                if token_value == 'DRAW_RECT':
-                    x1, y1, x2, y2 = int(tokens[i+2][1]), int(tokens[i+3][1]), int(tokens[i+4][1]), int(tokens[i+5][1])
-                    color, dest = tokens[i+6][1], tokens[i+8][1]
-                    draw.rectangle([x1, y1, x2, y2], fill=get_color(color)); i += 9
-                elif token_value == 'DRAW_LINE':
-                    x1, y1, x2, y2 = int(tokens[i+2][1]), int(tokens[i+3][1]), int(tokens[i+4][1]), int(tokens[i+5][1])
-                    color, dest = tokens[i+6][1], tokens[i+8][1]
-                    draw.line([x1, y1, x2, y2], fill=get_color(color), width=3); i += 9
-                elif token_value == 'DRAW_CIRCLE':
-                    x, y, r = int(tokens[i+2][1]), int(tokens[i+3][1]), int(tokens[i+4][1])
-                    color, dest = tokens[i+5][1], tokens[i+7][1]
-                    draw.ellipse([x-r, y-r, x+r, y+r], fill=get_color(color)); i += 8
-                elif token_value == 'DRAW_TEXT':
-                    text = tokens[i+2][1]
-                    x, y = int(tokens[i+3][1]), int(tokens[i+4][1])
-                    size = int(tokens[i+5][1])
-                    color, dest = tokens[i+6][1], tokens[i+8][1]
-                    try: font = ImageFont.truetype("arial.ttf", size)
-                    except: font = ImageFont.load_default()
-                    draw.text((x, y), text, fill=get_color(color), font=font); i += 9
-                    
-                memory[dest] = {'image': img, 'data': np.array(img, dtype=np.float64), 'rgb': True}
-                print(f"[Engine] Executed {token_value}. Stored in {dest}")
-            except (IndexError, ValueError): print(f"[Error] Invalid syntax for {token_value}"); break
-
-        elif token_value == 'PASTE':
-            try:
-                base_var, x, y = tokens[i+1][1], int(tokens[i+2][1]), int(tokens[i+3][1])
-                filename, dest = tokens[i+4][1], tokens[i+6][1]
-                if base_var not in memory: raise ValueError(f"Variable '{base_var}' not found.")
-                base_img = memory[base_var]['image'].copy()
-                paste_img = Image.open(filename).convert('RGB')
-                base_img.paste(paste_img, (x, y))
-                memory[dest] = {'image': base_img, 'data': np.array(base_img, dtype=np.float64), 'rgb': True}
-                print(f"[Engine] Pasted '{filename}' onto {base_var}. Stored in {dest}")
-                i += 7
-            except (IndexError, ValueError, FileNotFoundError): print("[Error] Use: PASTE base x y \"img.png\" -> dest"); break
-
-        elif token_value == 'CARTOON':
-            try:
-                var1, dest = tokens[i+1][1], tokens[i+3][1]
-                if var1 not in memory or not memory[var1]['rgb']: raise ValueError("Must be RGB image.")
-                data = memory[var1]['data']
-                blurred = get_blurred(get_blurred(data))
-                quantized = np.round(blurred / 32) * 32
-                gray = np.mean(data, axis=2)
-                gy, gx = np.gradient(gray)
-                edge_mask = np.hypot(gx, gy) > 30
-                for c in range(3): quantized[:,:,c][edge_mask] = 0
-                memory[dest] = {'image': None, 'data': np.clip(quantized, 0, 255), 'rgb': True}
-                print(f"[Engine] CARTOON filter applied! Stored in {dest}")
-                i += 4
-            except Exception as e: print(f"[Error] CARTOON failed: {e}"); break
+                if is_interactive:
+                    var_name = clean_input("Enter variable name for number: ")
+                    val = get_float("Enter number value: ")
+                else:
+                    var_name, val = tokens[i+1][1], tokens[i+2][1]
+                memory[var_name] = {'is_num': True, 'val': val}
+                print(f"[Engine] Variable '{var_name}' set to {val}")
+            except Exception as e: print(f"[Error] SET failed: {e}")
+            i += 1 if is_interactive else 3
 
         elif token_value == 'LOAD':
             try:
-                if tokens[i+1][0] != 'STRING': raise SyntaxError()
-                filename, var_name = tokens[i+1][1], tokens[i+3][1]
-                is_rgb = False
-                if i+4 < len(tokens) and tokens[i+4][1] == 'RGB': is_rgb = True; i += 1 
+                if is_interactive:
+                    filename = input("Enter image filename (e.g., photo.jpg): ").strip()
+                    is_rgb = input("Is it a color image? (y/n): ").lower() == 'y'
+                    var_name = clean_input("Save into variable name (e.g., my_photo): ")
+                else:
+                    filename, var_name = tokens[i+1][1], tokens[i+3][1]
+                    is_rgb = False
+                    if i+4 < len(tokens) and tokens[i+4][1] == 'RGB': is_rgb = True; i += 1 
                 img = Image.open(filename).convert('RGB') if is_rgb else Image.open(filename).convert('L')
                 memory[var_name] = {'image': img, 'data': np.array(img, dtype=np.float64), 'rgb': is_rgb}
                 print(f"[Engine] Loaded '{filename}' into {var_name}")
-                i += 4
-            except FileNotFoundError: print(f"[Error] File not found."); break
-            except (IndexError, SyntaxError): print("[Error] Use: LOAD \"file.png\" AS var [RGB]"); break
-
-        elif token_value in ['MULTIPLY', 'ADD', 'SUBTRACT']:
-            try:
-                var1, dest = tokens[i+1][1], tokens[i+5][1]
-                val_token = tokens[i+3][1]
-                val = memory[val_token]['val'] if tokens[i+3][0] == 'ID' and memory.get(val_token, {}).get('is_num') else val_token
-                
-                data = memory[var1]['data']
-                if token_value == 'MULTIPLY': res = data * val
-                elif token_value == 'ADD': res = data + val
-                elif token_value == 'SUBTRACT': res = data - val
-                
-                memory[dest] = {'image': None, 'data': np.clip(res, 0, 255), 'rgb': memory[var1]['rgb']}
-                print(f"[Engine] {token_value} executed. Stored in {dest}")
-                i += 6
-            except (IndexError, KeyError): print(f"[Error] Use: {token_value} var BY num -> dest"); break
-
-        elif token_value == 'INVERT':
-            try:
-                var1, dest = tokens[i+1][1], tokens[i+3][1]
-                memory[dest] = {'image': None, 'data': 255 - memory[var1]['data'], 'rgb': memory[var1]['rgb']}
-                print(f"[Engine] INVERT executed. Stored in {dest}")
-                i += 4
-            except (IndexError, KeyError): print("[Error] Use: INVERT var -> dest"); break
-
-        elif token_value == 'THRESHOLD':
-            try:
-                var1, num, dest = tokens[i+1][1], tokens[i+3][1], tokens[i+5][1]
-                memory[dest] = {'image': None, 'data': np.where(memory[var1]['data'] > num, 255, 0), 'rgb': memory[var1]['rgb']}
-                print(f"[Engine] THRESHOLD executed. Stored in {dest}")
-                i += 6
-            except (IndexError, KeyError): print("[Error] Use: THRESHOLD var BY num -> dest"); break
-
-        elif token_value == 'FLIP':
-            try:
-                var1, dest = tokens[i+1][1], tokens[i+3][1]
-                memory[dest] = {'image': None, 'data': np.fliplr(memory[var1]['data']), 'rgb': memory[var1]['rgb']}
-                print(f"[Engine] FLIP executed. Stored in {dest}")
-                i += 4
-            except (IndexError, KeyError): print("[Error] Use: FLIP var -> dest"); break
-
-        elif token_value == 'EDGES':
-            try:
-                var1, dest = tokens[i+1][1], tokens[i+3][1]
-                data = memory[var1]['data']
-                gray = np.mean(data, axis=2) if memory[var1]['rgb'] else data
-                gy, gx = np.gradient(gray)
-                memory[dest] = {'image': None, 'data': np.clip(np.hypot(gx, gy) * 3, 0, 255), 'rgb': False}
-                print(f"[Engine] EDGES executed. Stored in {dest}")
-                i += 4
-            except (IndexError, KeyError): print("[Error] Use: EDGES var -> dest"); break
-
-        elif token_value == 'BLUR':
-            try:
-                var1, dest = tokens[i+1][1], tokens[i+3][1]
-                memory[dest] = {'image': None, 'data': np.clip(get_blurred(memory[var1]['data']), 0, 255), 'rgb': memory[var1]['rgb']}
-                print(f"[Engine] BLUR executed. Stored in {dest}")
-                i += 4
-            except (IndexError, KeyError): print("[Error] Use: BLUR var -> dest"); break
-
-        elif token_value == 'SHARPEN':
-            try:
-                var1, dest = tokens[i+1][1], tokens[i+3][1]
-                data = memory[var1]['data']
-                memory[dest] = {'image': None, 'data': np.clip(data + (data - get_blurred(data)), 0, 255), 'rgb': memory[var1]['rgb']}
-                print(f"[Engine] SHARPEN executed. Stored in {dest}")
-                i += 4
-            except (IndexError, KeyError): print("[Error] Use: SHARPEN var -> dest"); break
-
-        elif token_value == 'MAX':
-            try:
-                var1, num, dest = tokens[i+2][1], tokens[i+4][1], tokens[i+7][1] 
-                memory[dest] = {'image': None, 'data': np.minimum(memory[var1]['data'], num), 'rgb': memory[var1]['rgb']}
-                print(f"[Engine] MAX executed. Stored in {dest}")
-                i += 8 
-            except (IndexError, KeyError): print("[Error] Use: MAX(var, num) -> dest"); break
+            except Exception as e: print(f"[Error] LOAD failed: {e}")
+            i += 1 if is_interactive else 4
 
         elif token_value == 'SAVE':
             try:
-                var1, filename = tokens[i+1][1], tokens[i+3][1]
+                if is_interactive:
+                    show_vars(memory)
+                    var1 = clean_input("Enter variable name to save: ")
+                    filename = input("Enter filename to save as (e.g., output.jpg): ").strip()
+                else:
+                    var1, filename = tokens[i+1][1], tokens[i+3][1]
                 data = memory[var1]['data']
                 out_mode = 'RGB' if memory[var1]['rgb'] else 'L'
                 Image.fromarray(np.clip(data, 0, 255).astype(np.uint8), mode=out_mode).save(filename)
-                
                 os.system("sync")
-                if filename.startswith('/sdcard'):
-                    os.system(f"termux-media-scan {filename} &")
-                    
+                if filename.startswith('/sdcard'): os.system(f"termux-media-scan {filename} &")
                 print(f"[Engine] Saved {var1} to '{filename}'")
-                i += 4
-            except (IndexError, KeyError): print("[Error] Use: SAVE var AS \"filename.png\""); break
+            except Exception as e: print(f"[Error] SAVE failed: {e}")
+            i += 1 if is_interactive else 4
 
-        elif token_value == 'OUTPUT':
+        elif token_value == 'CANVAS':
             try:
-                var_name = tokens[i+1][1]
-                data = memory[var_name]['data'].flatten()
-                print("\n--- FINAL OUTPUT ---")
-                for j in range(min(10, len(data))): print(f"Slot {j}: {data[j]:.2f}")
-                if len(data) > 10: print(f"... and {len(data) - 10} more pixels.")
-                i += 2
-            except (IndexError, KeyError): print("[Error] Use: OUTPUT var"); break
+                if is_interactive:
+                    width = get_int("Enter width (e.g., 500): ")
+                    height = get_int("Enter height (e.g., 500): ")
+                    color_name = input("Enter color (e.g., WHITE, #1A1A2E): ").strip()
+                    dest = clean_input("Enter variable name (e.g., my_canvas): ")
+                else:
+                    width, height = int(tokens[i+1][1]), int(tokens[i+2][1])
+                    color_name, dest = tokens[i+3][1], tokens[i+5][1]
+                img = Image.new('RGB', (width, height), get_color(color_name))
+                memory[dest] = {'image': img, 'data': np.array(img, dtype=np.float64), 'rgb': True}
+                print(f"[Engine] Created canvas in {dest}")
+            except Exception as e: print(f"[Error] CANVAS failed: {e}")
+            i += 1 if is_interactive else 6
 
+        elif token_value in ['DRAW_RECT', 'DRAW_LINE', 'DRAW_CIRCLE', 'DRAW_TEXT', 'BLUR', 'SEPIA', 'CARTOON', 'FLIP', 'INVERT', 'EDGES', 'SHARPEN', 'RESIZE', 'MULTIPLY', 'ADD', 'SUBTRACT', 'CROP', 'BLEND', 'MAX', 'PASTE']:
+            try:
+                if is_interactive:
+                    show_vars(memory)
+                    var1 = clean_input("Enter the source image variable: ")
+                    if var1 not in memory: raise ValueError(f"Variable '{var1}' not found.")
+                    
+                    if token_value == 'DRAW_TEXT':
+                        text = input("Enter text to draw: ").strip()
+                        x = get_int("X position: "); y = get_int("Y position: ")
+                        size = get_int("Font size (e.g., 40): "); color = input("Color (e.g., RED): ").strip()
+                    elif token_value in ['DRAW_RECT', 'DRAW_LINE']:
+                        x1 = get_int("Start X: "); y1 = get_int("Start Y: ")
+                        x2 = get_int("End X: "); y2 = get_int("End Y: "); color = input("Color: ").strip()
+                    elif token_value == 'DRAW_CIRCLE':
+                        x = get_int("Center X: "); y = get_int("Center Y: ")
+                        r = get_int("Radius: "); color = input("Color: ").strip()
+                    elif token_value in ['MULTIPLY', 'ADD', 'SUBTRACT']:
+                        val_str = input("Enter number or variable name to apply: ").strip()
+                        val = float(val_str) if val_str.replace('.', '', 1).isdigit() else val_str
+                    elif token_value == 'RESIZE':
+                        width = get_int("New width: "); height = get_int("New height: ")
+                    elif token_value == 'CROP':
+                        x1 = get_int("Crop X1: "); y1 = get_int("Crop Y1: ")
+                        x2 = get_int("Crop X2: "); y2 = get_int("Crop Y2: ")
+                    elif token_value == 'BLEND':
+                        var2 = clean_input("Enter OVERLAY image variable: ")
+                        if var2 not in memory: raise ValueError(f"Variable '{var2}' not found.")
+                        alpha = get_float("Enter alpha (0.0 to 1.0): ")
+                    elif token_value == 'MAX':
+                        num = get_float("Enter max value: ")
+                    elif token_value == 'PASTE':
+                        x = get_int("X position: "); y = get_int("Y position: ")
+                        filename = input("Enter filename to paste: ").strip()
+                    
+                    dest = clean_input("Enter destination variable (e.g., final_art): ")
+                else:
+                    var1 = tokens[i+1][1]
+                    if token_value == 'DRAW_RECT':
+                        x1, y1, x2, y2 = int(tokens[i+2][1]), int(tokens[i+3][1]), int(tokens[i+4][1]), int(tokens[i+5][1])
+                        color, dest = tokens[i+6][1], tokens[i+8][1]; i += 9
+                    elif token_value == 'DRAW_LINE':
+                        x1, y1, x2, y2 = int(tokens[i+2][1]), int(tokens[i+3][1]), int(tokens[i+4][1]), int(tokens[i+5][1])
+                        color, dest = tokens[i+6][1], tokens[i+8][1]; i += 9
+                    elif token_value == 'DRAW_CIRCLE':
+                        x, y, r = int(tokens[i+2][1]), int(tokens[i+3][1]), int(tokens[i+4][1])
+                        color, dest = tokens[i+5][1], tokens[i+7][1]; i += 8
+                    elif token_value == 'DRAW_TEXT':
+                        text, x, y = tokens[i+2][1], int(tokens[i+3][1]), int(tokens[i+4][1])
+                        size, color, dest = int(tokens[i+5][1]), tokens[i+6][1], tokens[i+8][1]; i += 9
+                    elif token_value == 'RESIZE':
+                        width, height, dest = int(tokens[i+2][1]), int(tokens[i+3][1]), tokens[i+5][1]; i += 6
+                    elif token_value == 'CROP':
+                        x1, y1, x2, y2 = int(tokens[i+2][1]), int(tokens[i+3][1]), int(tokens[i+4][1]), int(tokens[i+5][1])
+                        dest = tokens[i+7][1]; i += 8
+                    elif token_value == 'BLEND':
+                        var2, alpha, dest = tokens[i+2][1], float(tokens[i+3][1]), tokens[i+5][1]; i += 6
+                    elif token_value == 'MAX':
+                        num, dest = float(tokens[i+4][1]), tokens[i+7][1]; i += 8
+                    elif token_value == 'PASTE':
+                        x, y, filename, dest = int(tokens[i+2][1]), int(tokens[i+3][1]), tokens[i+4][1], tokens[i+6][1]; i += 7
+                    else:
+                        dest = tokens[i+3][1]; i += 4
+
+                if var1 not in memory: raise ValueError(f"Variable '{var1}' not found.")
+                
+                if token_value.startswith('DRAW_'):
+                    img = memory[var1]['image'].copy() if memory[var1]['image'] else Image.new('RGB', (500,500), (0,0,0))
+                    draw = ImageDraw.Draw(img)
+                    if token_value == 'DRAW_RECT': draw.rectangle([x1, y1, x2, y2], fill=get_color(color))
+                    elif token_value == 'DRAW_LINE': draw.line([x1, y1, x2, y2], fill=get_color(color), width=3)
+                    elif token_value == 'DRAW_CIRCLE': draw.ellipse([x-r, y-r, x+r, y+r], fill=get_color(color))
+                    elif token_value == 'DRAW_TEXT':
+                        try: font = ImageFont.truetype("arial.ttf", size)
+                        except: font = ImageFont.load_default()
+                        draw.text((x, y), text, fill=get_color(color), font=font)
+                    memory[dest] = {'image': img, 'data': np.array(img, dtype=np.float64), 'rgb': True}
+                elif token_value == 'RESIZE':
+                    img = memory[var1]['image']
+                    if img is None:
+                        mode = 'RGB' if memory[var1]['rgb'] else 'L'
+                        img = Image.fromarray(np.clip(memory[var1]['data'], 0, 255).astype(np.uint8), mode=mode)
+                    resized_img = img.resize((width, height))
+                    memory[dest] = {'image': resized_img, 'data': np.array(resized_img, dtype=np.float64), 'rgb': memory[var1]['rgb']}
+                elif token_value == 'CROP':
+                    img = memory[var1]['image']
+                    if img is None:
+                        mode = 'RGB' if memory[var1]['rgb'] else 'L'
+                        img = Image.fromarray(np.clip(memory[var1]['data'], 0, 255).astype(np.uint8), mode=mode)
+                    cropped = img.crop((x1, y1, x2, y2))
+                    memory[dest] = {'image': cropped, 'data': np.array(cropped, dtype=np.float64), 'rgb': memory[var1]['rgb']}
+                elif token_value == 'PASTE':
+                    base_img = memory[var1]['image'].copy()
+                    paste_img = Image.open(filename).convert('RGB')
+                    base_img.paste(paste_img, (x, y))
+                    memory[dest] = {'image': base_img, 'data': np.array(base_img, dtype=np.float64), 'rgb': True}
+                elif token_value == 'BLEND':
+                    base_img = memory[var1]['image']
+                    if base_img is None:
+                        base_img = Image.fromarray(np.clip(memory[var1]['data'], 0, 255).astype(np.uint8), mode='RGB' if memory[var1]['rgb'] else 'L')
+                    overlay_img = memory[var2]['image']
+                    if overlay_img is None:
+                        overlay_img = Image.fromarray(np.clip(memory[var2]['data'], 0, 255).astype(np.uint8), mode='RGB' if memory[var2]['rgb'] else 'L')
+                    if overlay_img.size != base_img.size: overlay_img = overlay_img.resize(base_img.size)
+                    blended = Image.blend(base_img.convert('RGB'), overlay_img.convert('RGB'), alpha)
+                    memory[dest] = {'image': blended, 'data': np.array(blended, dtype=np.float64), 'rgb': True}
+                elif token_value in ['MULTIPLY', 'ADD', 'SUBTRACT', 'MAX']:
+                    data = memory[var1]['data']
+                    if token_value == 'MAX': res = np.minimum(data, num)
+                    else:
+                        val = memory[val_str]['val'] if isinstance(val_str, str) and val_str in memory and memory[val_str].get('is_num') else float(val_str)
+                        if token_value == 'MULTIPLY': res = data * val
+                        elif token_value == 'ADD': res = data + val
+                        elif token_value == 'SUBTRACT': res = data - val
+                    memory[dest] = {'image': None, 'data': np.clip(res, 0, 255), 'rgb': memory[var1]['rgb']}
+                else:
+                    data = memory[var1]['data']
+                    if token_value == 'BLUR': res = np.clip(get_blurred(data), 0, 255)
+                    elif token_value == 'SHARPEN': res = np.clip(data + (data - get_blurred(data)), 0, 255)
+                    elif token_value == 'INVERT': res = 255 - data
+                    elif token_value == 'FLIP': res = np.fliplr(data)
+                    elif token_value == 'EDGES':
+                        gray = np.mean(data, axis=2) if memory[var1]['rgb'] else data
+                        gy, gx = np.gradient(gray)
+                        res = np.clip(np.hypot(gx, gy) * 3, 0, 255)
+                    elif token_value == 'SEPIA':
+                        r = (data[:,:,0] * 0.393) + (data[:,:,1] * 0.769) + (data[:,:,2] * 0.189)
+                        g = (data[:,:,0] * 0.349) + (data[:,:,1] * 0.686) + (data[:,:,2] * 0.168)
+                        b = (data[:,:,0] * 0.272) + (data[:,:,1] * 0.534) + (data[:,:,2] * 0.131)
+                        res = np.clip(np.stack([r, g, b], axis=2), 0, 255)
+                    elif token_value == 'CARTOON':
+                        blurred = get_blurred(get_blurred(data))
+                        quantized = np.round(blurred / 32) * 32
+                        gray = np.mean(data, axis=2); gy, gx = np.gradient(gray)
+                        edge_mask = np.hypot(gx, gy) > 30
+                        for c in range(3): quantized[:,:,c][edge_mask] = 0
+                        res = np.clip(quantized, 0, 255)
+                    memory[dest] = {'image': None, 'data': res, 'rgb': memory[var1]['rgb']}
+                print(f"[Engine] Executed {token_value}. Stored in {dest}")
+            except Exception as e: print(f"[Error] {token_value} failed: {e}")
+            i += 1 if is_interactive else (9 if token_value in ['DRAW_RECT', 'DRAW_LINE', 'DRAW_TEXT'] else 8 if token_value in ['DRAW_CIRCLE', 'CROP'] else 6 if token_value in ['RESIZE', 'BLEND'] else 7 if token_value == 'PASTE' else 4)
+
+        elif token_value == 'VIEW':
+            try:
+                if is_interactive: filename = input("Enter filename to view (e.g., /sdcard/Download/ai_image.jpg): ").strip()
+                else: filename = tokens[i+1][1]
+                time.sleep(1)
+                os.system(f"termux-open {filename}")
+                print(f"[Engine] Opening '{filename}'...")
+            except Exception as e: print(f"[Error] VIEW failed: {e}")
+            i += 1 if is_interactive else 2
+            
         elif token_value == 'RENDER':
             try:
-                var_name = tokens[i+1][1]
+                if is_interactive:
+                    show_vars(memory)
+                    var_name = clean_input("Enter variable to render: ")
+                else: var_name = tokens[i+1][1]
                 data = memory[var_name]['data']
                 if memory[var_name]['rgb']: data = np.mean(data, axis=2)
                 h, w = data.shape
@@ -468,23 +444,33 @@ def run_vecflow(code, memory):
                     row = "".join(ascii_chars[max(0, min(9, int(data[y, x] / 255 * 9)))] for x in range(0, min(w, 256), max(1, w//64)))
                     print(row)
                 print("----------------------\n")
-                i += 2
-            except (IndexError, KeyError): print("[Error] Use: RENDER var"); break
+            except Exception as e: print(f"[Error] RENDER failed: {e}")
+            i += 1 if is_interactive else 2
+            
+        elif token_value == 'OUTPUT':
+            try:
+                if is_interactive:
+                    show_vars(memory)
+                    var_name = clean_input("Enter variable to output: ")
+                else: var_name = tokens[i+1][1]
+                data = memory[var_name]['data'].flatten()
+                print("\n--- FINAL OUTPUT ---")
+                for j in range(min(10, len(data))): print(f"Slot {j}: {data[j]:.2f}")
+                if len(data) > 10: print(f"... and {len(data) - 10} more pixels.")
+            except Exception as e: print(f"[Error] OUTPUT failed: {e}")
+            i += 1 if is_interactive else 2
+
         else:
+            print(f"[Unknown Command] '{token_value}'. Type HELP to see the list of commands.")
             i += 1
     print("") 
 
-# ==========================================
-# MAIN EXECUTION (Required for PyPI/npm)
-# ==========================================
 def main():
     if len(sys.argv) > 1 and sys.argv[1] in ('--help', '-h'):
         interactive_help()
         sys.exit(0)
 
     persistent_memory = {}
-    
-    # Check if running a script file
     if len(sys.argv) > 1:
         filename = sys.argv[1]
         print(f"--- Running VecFlow Script: {filename} ---\n")
@@ -493,29 +479,21 @@ def main():
                 for line_number, line in enumerate(file, 1):
                     if line.strip():
                         print(f"Executing line {line_number}: {line.strip()}")
-                        try: 
-                            run_vecflow(line, persistent_memory)
-                        except Exception as e: 
-                            print(f"[Error on line {line_number}] {e}")
-                            break 
-        except FileNotFoundError: 
-            print(f"[Error] Could not find file '{filename}'")
-            
-    # Interactive Mode (REPL)
+                        try: run_vecflow(line, persistent_memory)
+                        except Exception as e: print(f"[Error on line {line_number}] {e}"); break 
+        except FileNotFoundError: print(f"[Error] Could not find file '{filename}'")
     else:
-        print("Welcome to VecFlow v5.0 (Ultimate Edition)!")
+        print("Welcome to VecFlow v5.1.1 (Cloudflare AI Edition)!")
         print("Founder: Isaiah Micheal Asuquo")
         print("Type 'HELP' for commands or 'EXIT' to quit.\n")
+        print("💡 Pro-Tip: Type a command name (like AI, LOAD, CANVAS) and press Enter to use the interactive wizard!\n")
         while True:
             try:
                 user_input = input("VecFlow> ")
                 if user_input.strip().upper() == 'EXIT': 
-                    print("Goodbye!")
-                    break
-                if user_input.strip(): 
-                    run_vecflow(user_input, persistent_memory)
-            except Exception as e: 
-                print(f"[Error] {e}")
+                    print("Goodbye!"); break
+                if user_input.strip(): run_vecflow(user_input, persistent_memory)
+            except Exception as e: print(f"[Error] {e}")
 
 if __name__ == "__main__":
     main()
